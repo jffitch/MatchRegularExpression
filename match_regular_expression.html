@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+table, th, td {
+  border: 1px solid black;
+}
+</style>
+</head>
+<body>
+	Enter Original Text Here
+	<textarea id="input" rows="10" style="width: 100%"></textarea>
+	Enter Regular Expression Look Behind Here (Optional)
+	<textarea id="regExpBehind" rows="1" style="width: 100%"></textarea>
+	Enter Regular Expression Match Here
+	<textarea id="regExpMatch" rows="1" style="width: 100%"></textarea>
+	Enter Regular Expression Look Ahead Here (Optional)
+	<textarea id="regExpAhead" rows="1" style="width: 100%"></textarea>
+	Enter Desired Result Here<br/>
+	Use the following hotkeys: {*} original match, {A} match to uppercase, {a} match to lowercase, {Aa} match to uppercase first letter, {aA} match to lowercase first letter, {aAa} match to camel case with first letter lowercase, {AaA} match to camel case with first letter uppercase, {_} match to underscore notation, {a_} match to lowercase underscore notation, {A_} match to uppercase underscore notation, { } match to space notation, {a } match to lowercase space notation, {A } match to uppercase space notation, {Aa } match to space notation first letter each word uppercase other letters lowercase
+	<textarea id="replacement" rows="3" style="width: 100%"></textarea>
+	Enter Join Delimiter Here (between each result but not before first or after last)
+	<textarea id="joinDelimiter" rows="3" style="width: 100%"></textarea>
+	<textarea id="output" rows="10" style="width: 100%"></textarea>
+	<button onclick="submit()">Submit</button>
+</body>
+<script type="text/javascript">
+	function getValue(id) {
+		return document.getElementById(id).value;
+	}
+	function setValue(id, val) {
+		document.getElementById(id).value = val;
+	}
+	function submit() {
+		let regExpBehind = getValue("regExpBehind");
+		let regExpMatch = getValue("regExpMatch");
+		let regExpAhead = getValue("regExpAhead");
+		let regExpFull = (regExpBehind === "" ? "" : `(?<=${regExpBehind})`) + regExpMatch + (regExpAhead === "" ? "" : `(?=${regExpAhead})`);
+		let strings = getValue("input").match(new RegExp(regExpFull, "g")) || [];
+		let replacement = getValue("replacement");
+		let joinDelimiter = getValue("joinDelimiter");
+		let output = strings.map(v => replaceHotKeys(replacement, v)).join(joinDelimiter);
+		setValue("output", output);
+	}
+	function replaceHotKeys(replacement, str) {
+		let returnString = replacement;
+		returnString = returnString.replace(/\{\*\}/g, str);
+		returnString = returnString.replace(/\{A\}/g, str.toUpperCase());
+		returnString = returnString.replace(/\{a\}/g, str.toLowerCase());
+		returnString = returnString.replace(/\{Aa\}/g, str.replace(/^./, c => c.toUpperCase()));
+		returnString = returnString.replace(/\{aA\}/g, str.replace(/^./, c => c.toLowerCase()));
+		returnString = returnString.replace(/\{aAa\}/g, camelCase(str));
+		returnString = returnString.replace(/\{AaA\}/g, capCamelCase(str));
+		returnString = returnString.replace(/\{_\}/g, underscore(str));
+		returnString = returnString.replace(/\{a_\}/g, underscore(str).toLowerCase());
+		returnString = returnString.replace(/\{A_\}/g, underscore(str).toUpperCase());
+		returnString = returnString.replace(/\{ \}/g, space(str));
+		returnString = returnString.replace(/\{a \}/g, space(str).toLowerCase());
+		returnString = returnString.replace(/\{A \}/g, space(str).toUpperCase());
+		returnString = returnString.replace(/\{Aa \}/g, capSpace(str));
+		return returnString;
+	}
+	function camelCase(str) {
+		return str.replace(/[ _]+([a-zA-Z])/g, (_, a) => a.toUpperCase()).replace(/[ _]/g, "").replace(/^./, c => c.toLowerCase());
+	}
+	function capCamelCase(str) {
+		return str.replace(/[ _]+([a-zA-Z])/g, (_, a) => a.toUpperCase()).replace(/[ _]/g, "").replace(/^./, c => c.toUpperCase());
+	}
+	function underscore(str) {
+		return str.replace(/([A-Z])([A-Z])([a-z])/g, "$1_$2$3").replace(/([a-z])([A-Z])/g, "$1_$2").replace(/[ _]/g, "_");
+	}
+	function space(str) {
+		return underscore(str).replace(/_/g, " ");
+	}
+	function capSpace(str) {
+		return space(str).replace(/[a-zA-Z]+/g, v => v.toLowerCase().replace(/^./, c => c.toUpperCase()))
+	}
+</script>
+</html>
