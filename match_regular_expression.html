@@ -21,7 +21,12 @@ table, th, td {
 	<label for="sortAsc">Sort Ascending</label>
 	<input type="radio" name="sort" id="sortAsc" value="SortAsc">
 	<label for="sortDesc">Sort Descending</label>
-	<input type="radio" name="sort" id="sortDesc" value="SortDesc"><br/>
+	<input type="radio" name="sort" id="sortDesc" value="SortDesc">
+	<label for="sortDesc">Sort By Array</label>
+	<input type="radio" name="sort" id="sortArray" value="SortArray"><br/><br/>
+	Sorting Array<br/>
+	Enter regular expressions here to test for matches with the strings. Strings will be sorted based on the index of the first matching regular expression. Strings that don't match will be last. Separate each regular expression with a line break.
+	<textarea id="sortingArray" rows="10" style="width: 100%"></textarea>
 	Sort By Capture Group Number (Optional) <textarea id="sortGroup" rows="1" columns="3" maxlength="3" style="width: 50px"></textarea><br/>
 	Remove Duplicates By Capture Group Number (Optional) <textarea id="duplicateGroup" rows="1" columns="3" maxlength="3" style="width: 50px"></textarea><br/>
 	Enter Regular Expression Look Behind Here (Optional)
@@ -34,7 +39,7 @@ table, th, td {
 	Use the following hotkeys: {*} original match, {A} match to uppercase, {a} match to lowercase, {Aa} match to uppercase first letter, {aA} match to lowercase first letter, {aAa} match to camel case with first letter lowercase, {AaA} match to camel case with first letter uppercase, {_} match to underscore notation, {a_} match to lowercase underscore notation, {A_} match to uppercase underscore notation, { } match to space notation, {a } match to lowercase space notation, {A } match to uppercase space notation, {Aa } match to space notation first letter each word uppercase other letters lowercase, {r} match to replacement list, {n} index of match starting at 0, {n+1} or {n-1} index of match plus or minus 1 (or change to a different number).<br/><br/>
 	If you use capture groups in your regular expression, you may add a number in the hotkey to reference that capture group. For example, {1*} for the original first capture, or {2A} for the second capture to uppercase. <br/><br/>
 	You may also use<br/>{if n<br/>regExp<br/>ifTrue<br/>ifFalse<br/>}<br/> to return ifTrue if match or nth capture group matches regExp and ifFalse if it doesn't (replace n, regExp, ifTrue, and ifFalse with desired values; ifTrue and ifFalse may use hotkeys; n is optional and is the capture group number), or {eval(...)} to convert "..." string to JavaScript code using str[0] as original match, str[n] as nth capture, or n as match index. Put a line break immediately after either one of these to prevent errors. If you actually want a line break in your output code, put two line breaks.
-	<textarea id="replacement" rows="3" style="width: 100%"></textarea>
+	<textarea id="replacement" rows="10" style="width: 100%"></textarea>
 	Enter Join Delimiter Here (between each result but not before first or after last)
 	<textarea id="joinDelimiter" rows="3" style="width: 100%"></textarea>
 	Replacement List<br/>
@@ -61,6 +66,7 @@ table, th, td {
 	}
 	function submit() {
 		let isParse = document.getElementById("parse").checked;
+		let sortingArray = (getValue("sortingArray") + "\n").split("\n")
 		let regExpBehind = getValue("regExpBehind");
 		let regExpMatch = getValue("regExpMatch");
 		let regExpAhead = getValue("regExpAhead");
@@ -75,6 +81,7 @@ table, th, td {
 		}
 		let sortAsc = document.getElementById("sortAsc").checked;
 		let sortDesc = document.getElementById("sortDesc").checked;
+		let sortArray = document.getElementById("sortArray").checked;
 		let sortGroupText = getValue("sortGroup").replace(/\D/g, "")
 		let sortGroup = sortGroupText === "" ? 0 : parseInt(sortGroupText)
 		if (strings.length > 0) {
@@ -85,6 +92,9 @@ table, th, td {
 		}
 		if (sortDesc) {
 			strings.sort((a, b) => a[sortGroup].toLowerCase() < b[sortGroup].toLowerCase() ? 1 : -1);
+		}
+		if (sortArray) {
+			strings.sort((a, b) => sortingArray.findIndex((it) => new RegExp(it).test(a)) - sortingArray.findIndex((it) => new RegExp(it).test(b)));
 		}
 		let replacement = getValue("replacement");
 		let joinDelimiter = getValue("joinDelimiter");
