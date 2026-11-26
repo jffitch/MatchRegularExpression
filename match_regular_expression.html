@@ -49,7 +49,25 @@ table, th, td {
 	<textarea id="replacementListOutput" rows="5" style="width: 40%"></textarea><br/>
 	Output Here
 	<textarea id="output" rows="10" style="width: 100%"></textarea>
-	<button onclick="submit()">Submit</button>
+	<button onclick="submit()">Submit</button><br/><br/>
+	<b><u>Generate Table</u></b><br/>
+	Use this section to generate a table.<br/><br/>
+	Table Column Names<br/>
+	Put each column name on separate line.<br/>
+	<textarea id="tableColumnNames" rows="5" style="width: 100%"></textarea><br/><br/>
+	Table Content<br/>
+	Use the same hotkeys as above.<br/>
+	Use ||| to separate table columns.<br/>
+	<textarea id="tableContent" rows="10" style="width: 100%"></textarea>
+	<button onclick="generateTable()">Generate Table</button><br/>
+	<table>
+		<thead id="tableHeadings">
+			
+		</thead>
+		<tbody id="tableBody">
+			
+		</tbody>
+	</table>
 </body>
 <script type="text/javascript">
 	function onLoad() {
@@ -63,6 +81,9 @@ table, th, td {
 	}
 	function setValue(id, val) {
 		document.getElementById(id).value = val;
+	}
+	function setInnerHTML(id, val) {
+		document.getElementById(id).innerHTML = val;
 	}
 	function submit() {
 		let isParse = document.getElementById("parse").checked;
@@ -105,16 +126,66 @@ table, th, td {
 			isParse ? 
 			strings.map(v => {
 				  currentIndex++;
-				  return replaceHotKeys(replacement, v, currentIndex);
+				  return replaceHotKeys(replacement, v, currentIndex, false);
 		    }).join(joinDelimiter)
 			:
 			text.replace(regex, (...v) => {
 				currentIndex++;
-				return replaceHotKeys(replacement, v.slice(0, -2), currentIndex);
+				return replaceHotKeys(replacement, v.slice(0, -2), currentIndex, false);
 			});
 		setValue("output", output);
 	}
-	function replaceHotKeys(replacement, str, currentIndex) {
+	function generateTable() {
+		let sortingArray = (getValue("sortingArray") + "\n").split("\n")
+		let regExpBehind = getValue("regExpBehind");
+		let regExpMatch = getValue("regExpMatch");
+		let regExpAhead = getValue("regExpAhead");
+		let regExpFull = (regExpBehind === "" ? "" : `(?<=${regExpBehind})`) + regExpMatch + (regExpAhead === "" ? "" : `(?=${regExpAhead})`);
+		let text = getValue("input")
+		let regex = new RegExp(regExpFull, "g");
+		let strings = [...text.matchAll(regex)];
+		let duplicateGroupText = getValue("duplicateGroup").replace(/\D/g, "")
+		let duplicateGroup = duplicateGroupText === "" ? -1 : parseInt(duplicateGroupText)
+		if (duplicateGroup >= 0) {
+			strings = strings.filter((v, i) => strings.slice(i+1).every(w => w.length <= duplicateGroup || w[duplicateGroup] != v[duplicateGroup]));
+		}
+		let sortAsc = document.getElementById("sortAsc").checked;
+		let sortDesc = document.getElementById("sortDesc").checked;
+		let sortArray = document.getElementById("sortArray").checked;
+		let sortGroupText = getValue("sortGroup").replace(/\D/g, "")
+		let sortGroup = sortGroupText === "" ? 0 : parseInt(sortGroupText)
+		if (strings.length > 0) {
+			sortGroup = sortGroup >= strings[0].length ? 0 : sortGroup
+		}
+		if (sortAsc) {
+			strings.sort((a, b) => a[sortGroup].toLowerCase() < b[sortGroup].toLowerCase() ? -1 : 1);
+		}
+		if (sortDesc) {
+			strings.sort((a, b) => a[sortGroup].toLowerCase() < b[sortGroup].toLowerCase() ? 1 : -1);
+		}
+		if (sortArray) {
+			strings.sort((a, b) => sortingArray.findIndex((it) => new RegExp(it).test(a)) - sortingArray.findIndex((it) => new RegExp(it).test(b)));
+		}
+		let tableContent = getValue("tableContent");
+		replacementListInput = replacementListInputField.value.split("\n");
+		replacementListOutput = replacementListOutputField.value.split("\n");
+		let tableColumnNames = getValue("tableColumnNames").split("\n");
+		let tableHeadings = "<tr><th>";
+		tableHeadings += tableColumnNames.map(v => {
+					return v.trim();
+				}).join("</th><th>");
+		tableHeadings += "</th></tr>";
+		setInnerHTML("tableHeadings", tableHeadings);
+		let currentIndex = -1;
+		let tableBody = "<tr><td>";
+		tableBody += strings.map(v => {
+				  currentIndex++;
+				  return replaceHotKeys(tableContent, v, currentIndex, true);
+		    }).join("</td></tr><tr><td>");
+		tableBody += "</td></tr>";
+		setInnerHTML("tableBody", tableBody);
+	}
+	function replaceHotKeys(replacement, str, currentIndex, isTable) {
 		let returnString = replacement;
 		returnString = returnString.replace(/\{if *(\d*) *\n(.*)\n(.*)\n(.*)\n *}\n?/g, (_, d, regExp, ifTrue, ifFalse) => new RegExp(regExp).test(chooseGroup(str, d)) ? ifTrue : ifFalse);
 		returnString = returnString.replace(/\{eval\((.*)\)\}\n?/g, (_, a) => { let n=currentIndex; return eval(a) });
@@ -142,6 +213,10 @@ table, th, td {
 			}
 			return s;
 		});
+		if (isTable) {
+			returnString = returnString.replace(/ *\n */g, "<br/>");
+			returnString = returnString.replace(/ *\|{3} */g, "</td><td>");
+		}
 		return returnString;
 	}
 	function addOrSubtract(start, op, num) {
