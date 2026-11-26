@@ -5,24 +5,32 @@
 table, th, td {
   border: 1px solid black;
 }
+input[type="radio"][name="sort"] {
+  margin-right: 25px;
+}
 </style>
 </head>
 <body onload="onLoad()">
 	Enter Original Text Here
-	<textarea id="input" rows="10" style="width: 100%"></textarea>
+	<textarea id="input" rows="10" style="width: 100%"></textarea><br/>
 	Use "Parse" to parse the matches to a list then join to a string using the Join Delimiter. Use "Replace" to replace the matches in place and keep the rest of the text unchanged.<br/>
 	<label for="parse">Parse</label>
 	<input type="radio" name="parseOrReplace" id="parse" value="parse" checked="checked">
 	<label for="replace">Replace</label>
-	<input type="radio" name="parseOrReplace" id="replace" value="replace"><br/>
+	<input type="radio" name="parseOrReplace" id="replace" value="replace"><br/><br/>
 	If using parse, sort?<br/>
+	Sorting numerically always sorts shorter strings first (so 9 comes before 10).<br>
 	<label for="noSort">No Sort</label>
 	<input type="radio" name="sort" id="noSort" value="NoSort" checked="checked">
 	<label for="sortAsc">Sort Ascending</label>
 	<input type="radio" name="sort" id="sortAsc" value="SortAsc">
 	<label for="sortDesc">Sort Descending</label>
 	<input type="radio" name="sort" id="sortDesc" value="SortDesc">
-	<label for="sortDesc">Sort By Array</label>
+	<label for="sortNumAsc">Sort Numerically Ascending</label>
+	<input type="radio" name="sort" id="sortNumAsc" value="SortNumAsc">
+	<label for="sortNumDesc">Sort Numerically Descending</label>
+	<input type="radio" name="sort" id="sortNumDesc" value="SortNumDesc">
+	<label for="sortArray">Sort By Array</label>
 	<input type="radio" name="sort" id="sortArray" value="SortArray"><br/><br/>
 	Sorting Array<br/>
 	Enter regular expressions here to test for matches with the strings. Strings will be sorted based on the index of the first matching regular expression. Strings that don't match will be last. Separate each regular expression with a line break.
@@ -102,6 +110,8 @@ table, th, td {
 		}
 		let sortAsc = document.getElementById("sortAsc").checked;
 		let sortDesc = document.getElementById("sortDesc").checked;
+		let sortNumAsc = document.getElementById("sortNumAsc").checked;
+		let sortNumDesc = document.getElementById("sortNumDesc").checked;
 		let sortArray = document.getElementById("sortArray").checked;
 		let sortGroupText = getValue("sortGroup").replace(/\D/g, "")
 		let sortGroup = sortGroupText === "" ? 0 : parseInt(sortGroupText)
@@ -113,6 +123,18 @@ table, th, td {
 		}
 		if (sortDesc) {
 			strings.sort((a, b) => a[sortGroup].toLowerCase() < b[sortGroup].toLowerCase() ? 1 : -1);
+		}
+		if (sortNumAsc) {
+			strings.sort((a, b) => 
+			a[sortGroup].length == b[sortGroup].length ? 
+			(a[sortGroup].toLowerCase() < b[sortGroup].toLowerCase() ? -1 : 1) :
+			a[sortGroup].length - b[sortGroup].length);
+		}
+		if (sortNumDesc) {
+			strings.sort((a, b) => 
+			a[sortGroup].length == b[sortGroup].length ? 
+			(a[sortGroup].toLowerCase() < b[sortGroup].toLowerCase() ? 1 : -1) :
+			b[sortGroup].length - a[sortGroup].length);
 		}
 		if (sortArray) {
 			strings.sort((a, b) => sortingArray.findIndex((it) => new RegExp(it).test(a)) - sortingArray.findIndex((it) => new RegExp(it).test(b)));
