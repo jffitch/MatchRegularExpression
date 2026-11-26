@@ -10,17 +10,23 @@ table, th, td {
 <body>
 	Enter Original Text Here
 	<textarea id="input" rows="10" style="width: 100%"></textarea>
+	<input type="radio" name="parseOrReplace" id="parse" value="Parse" checked="checked">
+	<label for="parse">Parse</label>
+	<label for="replace">Replace</label>
+	<input type="radio" name="parseOrReplace" id="replace" value="replace"><br/>
 	Enter Regular Expression Look Behind Here (Optional)
 	<textarea id="regExpBehind" rows="1" style="width: 100%"></textarea>
 	Enter Regular Expression Match Here
 	<textarea id="regExpMatch" rows="1" style="width: 100%"></textarea>
 	Enter Regular Expression Look Ahead Here (Optional)
 	<textarea id="regExpAhead" rows="1" style="width: 100%"></textarea>
-	Enter Desired Result Here<br/>
-	Use the following hotkeys: {*} original match, {A} match to uppercase, {a} match to lowercase, {Aa} match to uppercase first letter, {aA} match to lowercase first letter, {aAa} match to camel case with first letter lowercase, {AaA} match to camel case with first letter uppercase, {_} match to underscore notation, {a_} match to lowercase underscore notation, {A_} match to uppercase underscore notation, { } match to space notation, {a } match to lowercase space notation, {A } match to uppercase space notation, {Aa } match to space notation first letter each word uppercase other letters lowercase
+	Enter Replacement Here<br/><br/>
+	Use the following hotkeys: {*} original match, {A} match to uppercase, {a} match to lowercase, {Aa} match to uppercase first letter, {aA} match to lowercase first letter, {aAa} match to camel case with first letter lowercase, {AaA} match to camel case with first letter uppercase, {_} match to underscore notation, {a_} match to lowercase underscore notation, {A_} match to uppercase underscore notation, { } match to space notation, {a } match to lowercase space notation, {A } match to uppercase space notation, {Aa } match to space notation first letter each word uppercase other letters lowercase.<br/><br/>
+	You may also use {/regExp/{?}ifTrue{:}ifFalse} to return ifTrue if match matches regExp and ifFalse if it doesn't (replace regExp, ifTrue, and ifFalse with desired values; ifTrue and ifFalse may use hotkeys), or {eval(...)} to convert "..." string to JavaScript code using str as original match (hotkeys work only if JavaScript returns them as strings). If you're using either of these more than once, it's recommended to put a line break after it to prevent errors. If you actually want a line break in your output code, put two line breaks.
 	<textarea id="replacement" rows="3" style="width: 100%"></textarea>
 	Enter Join Delimiter Here (between each result but not before first or after last)
 	<textarea id="joinDelimiter" rows="3" style="width: 100%"></textarea>
+	Output Here
 	<textarea id="output" rows="10" style="width: 100%"></textarea>
 	<button onclick="submit()">Submit</button>
 </body>
@@ -32,18 +38,23 @@ table, th, td {
 		document.getElementById(id).value = val;
 	}
 	function submit() {
+		let isParse = document.getElementById("parse").checked
 		let regExpBehind = getValue("regExpBehind");
 		let regExpMatch = getValue("regExpMatch");
 		let regExpAhead = getValue("regExpAhead");
 		let regExpFull = (regExpBehind === "" ? "" : `(?<=${regExpBehind})`) + regExpMatch + (regExpAhead === "" ? "" : `(?=${regExpAhead})`);
-		let strings = getValue("input").match(new RegExp(regExpFull, "g")) || [];
+		let text = getValue("input")
+		let regex = new RegExp(regExpFull, "g")
+		let strings = text.match(regex) || [];
 		let replacement = getValue("replacement");
 		let joinDelimiter = getValue("joinDelimiter");
-		let output = strings.map(v => replaceHotKeys(replacement, v)).join(joinDelimiter);
+		let output = isParse ? strings.map(v => replaceHotKeys(replacement, v)).join(joinDelimiter) : text.replace(regex, v => replaceHotKeys(replacement, v));
 		setValue("output", output);
 	}
 	function replaceHotKeys(replacement, str) {
 		let returnString = replacement;
+		returnString = returnString.replace(/\{eval\((.*)\)\}\n?/g, (_, a) => eval(a));
+		returnString = returnString.replace(/\{\/(.*)\/\{\?\}(.*)\{:\}(.*)\}\n?/g, (_, regExp, ifTrue, ifFalse) => new RegExp(regExp).test(str) ? ifTrue : ifFalse);
 		returnString = returnString.replace(/\{\*\}/g, str);
 		returnString = returnString.replace(/\{A\}/g, str.toUpperCase());
 		returnString = returnString.replace(/\{a\}/g, str.toLowerCase());
