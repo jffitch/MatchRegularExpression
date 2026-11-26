@@ -31,7 +31,7 @@ table, th, td {
 	Enter Regular Expression Look Ahead Here (Optional)
 	<textarea id="regExpAhead" rows="1" style="width: 100%"></textarea>
 	Enter Replacement Here<br/><br/>
-	Use the following hotkeys: {*} original match, {A} match to uppercase, {a} match to lowercase, {Aa} match to uppercase first letter, {aA} match to lowercase first letter, {aAa} match to camel case with first letter lowercase, {AaA} match to camel case with first letter uppercase, {_} match to underscore notation, {a_} match to lowercase underscore notation, {A_} match to uppercase underscore notation, { } match to space notation, {a } match to lowercase space notation, {A } match to uppercase space notation, {Aa } match to space notation first letter each word uppercase other letters lowercase.<br/><br/>
+	Use the following hotkeys: {*} original match, {A} match to uppercase, {a} match to lowercase, {Aa} match to uppercase first letter, {aA} match to lowercase first letter, {aAa} match to camel case with first letter lowercase, {AaA} match to camel case with first letter uppercase, {_} match to underscore notation, {a_} match to lowercase underscore notation, {A_} match to uppercase underscore notation, { } match to space notation, {a } match to lowercase space notation, {A } match to uppercase space notation, {Aa } match to space notation first letter each word uppercase other letters lowercase, {n} index of match starting at 0, {n+1} or {n-1} index of match plus or minus 1 (or change to a different number).<br/><br/>
 	If you use capture groups in your regular expression, you may add a number in the hotkey to reference that capture group. For example, {1*} for the original first capture, or {2A} for the second capture to uppercase. <br/><br/>
 	You may also use {n/regExp/{?}ifTrue{:}ifFalse} to return ifTrue if match or nth capture group matches regExp and ifFalse if it doesn't (replace n, regExp, ifTrue, and ifFalse with desired values; ifTrue and ifFalse may use hotkeys; n is optional and is the capture group number), or {eval(...)} to convert "..." string to JavaScript code using str[0] as original match or str[n] as nth capture (hotkeys work only if JavaScript returns them as strings). Put a line break immediately after either one of these to prevent errors. If you actually want a line break in your output code, put two line breaks.
 	<textarea id="replacement" rows="3" style="width: 100%"></textarea>
@@ -77,13 +77,25 @@ table, th, td {
 		}
 		let replacement = getValue("replacement");
 		let joinDelimiter = getValue("joinDelimiter");
-		let output = isParse ? strings.map(v => replaceHotKeys(replacement, v)).join(joinDelimiter) : text.replace(regex, (...v) => replaceHotKeys(replacement, v.slice(0, -2)));
+		let currentIndex = -1;
+		let output =
+			isParse ? 
+			strings.map(v => {
+				  currentIndex++;
+				  return replaceHotKeys(replacement, v, currentIndex);
+		    }).join(joinDelimiter)
+			:
+			text.replace(regex, (...v) => {
+				currentIndex++;
+				return replaceHotKeys(replacement, v.slice(0, -2), currentIndex);
+			});
 		setValue("output", output);
 	}
-	function replaceHotKeys(replacement, str) {
+	function replaceHotKeys(replacement, str, currentIndex) {
 		let returnString = replacement;
 		returnString = returnString.replace(/\{eval\((.*)\)\}\n?/g, (_, a) => eval(a));
 		returnString = returnString.replace(/\{(\d*)\/(.*)\/\{\?\}(.*)\{:\}(.*)\}\n?/g, (_, d, regExp, ifTrue, ifFalse) => new RegExp(regExp).test(chooseGroup(str, d)) ? ifTrue : ifFalse);
+		returnString = returnString.replace(/\{\d*n([+-]?)(\d*)\}/g, (_, op, num) => addOrSubtract(currentIndex, op, num))
 		returnString = returnString.replace(/\{(\d*)\*\}/g, (_, d) => chooseGroup(str, d));
 		returnString = returnString.replace(/\{(\d*)A\}/g,  (_, d) => chooseGroup(str, d).toUpperCase());
 		returnString = returnString.replace(/\{(\d*)a\}/g,  (_, d) => chooseGroup(str, d).toLowerCase());
@@ -99,6 +111,17 @@ table, th, td {
 		returnString = returnString.replace(/\{(\d*)A \}/g, (_, d) => space(chooseGroup(str, d)).toUpperCase());
 		returnString = returnString.replace(/\{(\d*)Aa \}/g, (_, d) => capSpace(chooseGroup(str, d)));
 		return returnString;
+	}
+	function addOrSubtract(start, op, num) {
+		if (!["+", "-"].includes(op) || num === "") {
+			return start;
+		}
+		if (op == "+") {
+			return start + parseInt(num);
+		}
+		if (op == "-") {
+			return start - parseInt(num);
+		}
 	}
 	function camelCase(string) {
 		newStr = !/[a-z]/.test(string) && /[A-Z]/.test(string) ? string.toLowerCase() : string
